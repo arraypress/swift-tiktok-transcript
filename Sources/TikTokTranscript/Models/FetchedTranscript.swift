@@ -2,7 +2,7 @@
 //  FetchedTranscript.swift
 //  TikTokTranscript
 //
-//  Created by David Sherlock on 2025.
+//  Created by David Sherlock on 2026.
 //
 
 import Foundation
@@ -25,7 +25,7 @@ public struct FetchedTranscript: Sendable {
     /// The transcript segments with timing information.
     public let segments: [TranscriptSegment]
 
-    /// Video metadata (author, stats, description, etc.).
+    /// Video metadata (author, stats, description, video URLs, etc.).
     ///
     /// Extracted from the same page fetch as the transcript at no extra cost.
     /// May be `nil` if TikTok's response structure changes.

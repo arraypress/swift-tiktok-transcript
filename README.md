@@ -1,12 +1,13 @@
 # Swift TikTok Transcript
 
-A Swift library for fetching TikTok video transcripts and metadata. No API key required, no browser needed — extracts captions directly from TikTok's public page data.
+A Swift library for fetching TikTok video transcripts, metadata, and direct video URLs. No API key required, no browser needed — extracts captions and media URLs directly from TikTok's public page data.
 
 ## Features
 
 - 🎯 **Simple API** — fetch transcripts with a single async call
 - 📝 **Full transcripts** with timestamps, durations, and language info
 - 📊 **Video metadata** — author, play/like/share counts, hashtags, music, description
+- 🎬 **Direct video URLs** — play, download, and multiple quality variants with codec/bitrate info
 - 🌍 **Multi-language support** — request specific languages with automatic fallback
 - 📋 **List available captions** — check what's available before fetching
 - 🔒 **No API key required** — parses TikTok's public page data
@@ -65,6 +66,45 @@ if let video = result.video {
     print("Description: \(video.description)")
 }
 ```
+
+### Video Download URLs
+
+Direct CDN links to the video file are extracted from the same page fetch. No signature solving or additional requests needed.
+
+```swift
+let result = try await TikTokTranscript.fetch("https://www.tiktok.com/@user/video/123")
+
+if let video = result.video {
+    // Best quality URL (highest resolution variant → play URL → download URL)
+    if let bestUrl = video.bestUrl {
+        print("Download: \(bestUrl)")
+    }
+
+    // Direct play URL (no watermark)
+    if let playUrl = video.playUrl {
+        print("Play: \(playUrl)")
+    }
+
+    // Download URL (may include watermark)
+    if let downloadUrl = video.downloadUrl {
+        print("Download (watermarked): \(downloadUrl)")
+    }
+
+    // All available quality variants
+    for variant in video.variants {
+        print("\(variant.quality ?? "unknown") — \(variant.width)x\(variant.height)")
+        if let codec = variant.codec {
+            print("  Codec: \(codec)")
+        }
+        if let bitrate = variant.bitrateKbps {
+            print("  Bitrate: \(bitrate) kbps")
+        }
+        print("  URL: \(variant.url)")
+    }
+}
+```
+
+> **Note:** TikTok CDN URLs expire after a few hours. Use them promptly after fetching.
 
 ### Timestamped Segments
 
@@ -128,7 +168,7 @@ The result of fetching a transcript.
 | Property | Type | Description |
 |----------|------|-------------|
 | `segments` | `[TranscriptSegment]` | Timestamped transcript segments |
-| `video` | `VideoMetadata?` | Video metadata (author, stats, etc.) |
+| `video` | `VideoMetadata?` | Video metadata (author, stats, URLs, etc.) |
 | `language` | `String` | Language code of the fetched transcript |
 | `plainText` | `String` | All segment text joined together |
 | `timestampedText` | `String` | Full transcript with `[M:SS]` timestamps |
@@ -176,6 +216,24 @@ Metadata about the video.
 | `formattedHashtags` | `String` | Hashtags with # prefixes |
 | `coverUrl` | `String?` | Cover image URL |
 | `url` | `String?` | Full TikTok video URL |
+| `playUrl` | `String?` | Direct play URL (no watermark) |
+| `downloadUrl` | `String?` | Download URL (may have watermark) |
+| `variants` | `[VideoVariant]` | Available quality variants |
+| `bestUrl` | `URL?` | Highest-quality direct download URL |
+
+### `VideoVariant`
+
+A single video quality variant.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `url` | `String` | Direct URL to this variant |
+| `width` | `Int` | Width in pixels |
+| `height` | `Int` | Height in pixels |
+| `quality` | `String?` | Quality label (e.g., `"720p"`, `"1080p"`) |
+| `codec` | `String?` | Video codec (e.g., `"h264"`, `"h265"`) |
+| `bitrateKbps` | `Int?` | Bitrate in kilobits per second |
+| `contentType` | `String` | Always `"video/mp4"` |
 
 ### `CaptionTrack`
 
@@ -202,8 +260,11 @@ This library extracts data from TikTok's public page HTML:
 2. **Extract rehydration JSON** — from the `__UNIVERSAL_DATA_FOR_REHYDRATION__` script tag
 3. **Navigate to video data** — `__DEFAULT_SCOPE__` → `webapp.video-detail` → `itemInfo` → `itemStruct`
 4. **Extract caption URLs** — from `video.claInfo.captionInfos` or `video.subtitleInfos`
-5. **Fetch the WebVTT file** — from TikTok's CDN
-6. **Parse into segments** — with timestamps and duration
+5. **Extract video URLs** — from `video.playAddr`, `video.downloadAddr`, and `video.bitrateInfo`
+6. **Fetch the WebVTT file** — from TikTok's CDN
+7. **Parse into segments** — with timestamps and duration
+
+Video URLs are direct CDN links — no signature solving or cipher decryption needed (unlike YouTube). The URLs do expire after a few hours, so they should be used promptly after fetching.
 
 ## App Sandbox Note
 
@@ -211,8 +272,9 @@ TikTok may serve a JavaScript challenge page instead of the actual video page wh
 
 ## Limitations
 
+- **CDN URL expiry** — Video download URLs expire after a few hours. Fetch and use them in the same session.
 - **App Sandbox** — macOS sandboxed apps may receive JS challenge pages instead of video data. See note above.
-- **Captions required** — Not all TikTok videos have captions. The `noCaptions` error indicates this.
+- **Captions required** — Not all TikTok videos have captions. The `noCaptions` error indicates this. Video URLs are still available via `VideoMetadata` even when captions are absent.
 - **Page structure changes** — TikTok may change their page structure at any time. Updates will be provided as needed.
 - **Rate limiting** — Making too many requests may result in `blocked` errors.
 
@@ -222,7 +284,7 @@ TikTok may serve a JavaScript challenge page instead of the actual video page wh
 swift test
 ```
 
-The test suite includes unit tests for VTT parsing, timestamp formatting, and caption track selection, plus integration tests that fetch from TikTok's live servers (require network access and sandbox disabled).
+The test suite includes unit tests for VTT parsing, timestamp formatting, caption track selection, video URL extraction, and variant selection, plus integration tests that fetch from TikTok's live servers (require network access and sandbox disabled).
 
 ## Contributing
 

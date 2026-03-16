@@ -2,7 +2,7 @@
 //  TikTokTranscriptError.swift
 //  TikTokTranscript
 //
-//  Created by David Sherlock on 2025.
+//  Created by David Sherlock on 2026.
 //
 
 import Foundation
@@ -21,46 +21,46 @@ import Foundation
 /// }
 /// ```
 public enum TikTokTranscriptError: Error, LocalizedError, Equatable, Sendable {
-
+    
     /// The provided URL is not a valid TikTok video URL.
     case invalidUrl
-
+    
     /// A network request failed.
     case networkError(String)
-
+    
     /// TikTok is blocking the request (HTTP 429 or JS challenge).
     ///
     /// This can happen when the App Sandbox is enabled or when TikTok
     /// serves a JavaScript challenge instead of the page content.
     /// Try disabling App Sandbox or retrying from a different network.
     case blocked
-
+    
     /// The video was not found in TikTok's page data.
     ///
     /// The video may have been deleted, set to private, or the URL may be malformed.
     case videoNotFound
-
+    
     /// The `__UNIVERSAL_DATA_FOR_REHYDRATION__` script tag was not found in the page.
     ///
     /// TikTok may have served a JavaScript challenge page instead of the
     /// actual video page. This often happens with App Sandbox enabled.
     case noRehydrationData
-
+    
     /// No captions are available for this video.
     ///
     /// Not all TikTok videos have captions. The creator must have captions
     /// enabled, or TikTok must have auto-generated them.
     case noCaptions
-
+    
     /// No caption was found matching the requested languages.
     case noCaptionForLanguage(requested: [String], available: [String])
-
+    
     /// Failed to fetch the WebVTT caption file from TikTok's CDN.
     case captionFetchFailed
-
+    
     /// Failed to parse response data.
     case parsingError(String)
-
+    
     public var errorDescription: String? {
         switch self {
         case .invalidUrl:
@@ -83,4 +83,5 @@ public enum TikTokTranscriptError: Error, LocalizedError, Equatable, Sendable {
             return "Parsing error: \(message)"
         }
     }
+    
 }

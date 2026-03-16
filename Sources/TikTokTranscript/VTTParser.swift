@@ -2,7 +2,7 @@
 //  VTTParser.swift
 //  TikTokTranscript
 //
-//  Created by David Sherlock on 2025.
+//  Created by David Sherlock on 2026.
 //
 
 import Foundation
@@ -18,7 +18,7 @@ import Foundation
 /// baby,
 /// ```
 enum VTTParser {
-
+    
     /// Parses WebVTT content into an array of segments.
     ///
     /// - Parameters:
@@ -29,10 +29,10 @@ enum VTTParser {
         var segments: [TranscriptSegment] = []
         let lines = vtt.components(separatedBy: .newlines)
         var i = 0
-
+        
         while i < lines.count {
             let line = lines[i].trimmingCharacters(in: .whitespaces)
-
+            
             // Look for timestamp lines: "00:00:01.234 --> 00:00:03.456"
             if line.contains("-->") {
                 let parts = line.components(separatedBy: "-->")
@@ -40,10 +40,10 @@ enum VTTParser {
                     i += 1
                     continue
                 }
-
+                
                 let startTime = parseTimestamp(parts[0].trimmingCharacters(in: .whitespaces))
                 let endTime = parseTimestamp(parts[1].trimmingCharacters(in: .whitespaces))
-
+                
                 // Collect text lines until empty line or next timestamp
                 var textLines: [String] = []
                 i += 1
@@ -57,7 +57,7 @@ enum VTTParser {
                     }
                     i += 1
                 }
-
+                
                 let text = textLines.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
                 if !text.isEmpty {
                     segments.append(TranscriptSegment(
@@ -71,10 +71,10 @@ enum VTTParser {
                 i += 1
             }
         }
-
+        
         return segments
     }
-
+    
     /// Parses a WebVTT timestamp string to seconds.
     ///
     /// Handles formats: `"00:00:01.234"` (H:MM:SS.mmm) and `"00:01.234"` (MM:SS.mmm).
@@ -82,7 +82,7 @@ enum VTTParser {
         let clean = timestamp.components(separatedBy: " ").first ?? timestamp
         let parts = clean.components(separatedBy: ":")
         var seconds: Double = 0
-
+        
         if parts.count == 3 {
             seconds += (Double(parts[0]) ?? 0) * 3600
             seconds += (Double(parts[1]) ?? 0) * 60
@@ -91,13 +91,14 @@ enum VTTParser {
             seconds += (Double(parts[0]) ?? 0) * 60
             seconds += Double(parts[1]) ?? 0
         }
-
+        
         return seconds
     }
-
+    
     /// Strips VTT formatting tags (e.g., `<c>`, `</c>`, `<00:00:01.234>`).
     private static func stripTags(_ text: String) -> String {
         text.replacingOccurrences(of: "<[^>]*>", with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
+    
 }

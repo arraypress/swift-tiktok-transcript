@@ -2,7 +2,7 @@
 //  VideoMetadata.swift
 //  TikTokTranscript
 //
-//  Created by David Sherlock on 2025.
+//  Created by David Sherlock on 2026.
 //
 
 import Foundation
@@ -16,6 +16,16 @@ import Foundation
 /// if let video = result.video {
 ///     print("\(video.author) (@\(video.authorHandle))")
 ///     print("\(video.formattedPlayCount) plays · \(video.formattedDuration)")
+///
+///     // Direct video download (best quality)
+///     if let url = video.bestUrl {
+///         print("Download: \(url)")
+///     }
+///
+///     // All available variants
+///     for variant in video.variants {
+///         print("\(variant.quality ?? "?") — \(variant.width)x\(variant.height)")
+///     }
 /// }
 /// ```
 public struct VideoMetadata: Codable, Equatable, Sendable {
@@ -68,12 +78,57 @@ public struct VideoMetadata: Codable, Equatable, Sendable {
     /// URL of the video cover image, if available.
     public let coverUrl: String?
 
+    // MARK: - Video URLs
+
+    /// The direct play URL (highest quality, no watermark).
+    ///
+    /// Extracted from TikTok's `video.playAddr` field. This is a direct
+    /// CDN link to the MP4 file. Note that TikTok CDN URLs expire after
+    /// a few hours — use them promptly after fetching.
+    public let playUrl: String?
+
+    /// The download URL (may include watermark).
+    ///
+    /// Extracted from TikTok's `video.downloadAddr` field. This variant
+    /// may include TikTok's watermark overlay.
+    public let downloadUrl: String?
+
+    /// Available video format variants at different qualities.
+    ///
+    /// Extracted from TikTok's `video.bitrateInfo` array. Each variant
+    /// has different resolution and bitrate. Use ``bestUrl`` for the
+    /// highest quality, or iterate for a specific quality level.
+    public let variants: [VideoVariant]
+
+    // MARK: - Computed Properties
+
     /// The full TikTok video URL.
     ///
     /// Requires the author handle to construct. Returns `nil` if the handle is empty.
     public var url: String? {
         guard !authorHandle.isEmpty else { return nil }
         return "https://www.tiktok.com/@\(authorHandle)/video/\(videoId)"
+    }
+
+    /// The highest-quality direct MP4 download URL.
+    ///
+    /// Priority: largest variant by pixel count → ``playUrl`` → ``downloadUrl``.
+    /// Returns `nil` if no video URL is available.
+    ///
+    /// Note: TikTok CDN URLs expire after a few hours. Use promptly after fetching.
+    public var bestUrl: URL? {
+        // Prefer the largest variant by resolution
+        if let best = variants
+            .sorted(by: { ($0.width * $0.height) > ($1.width * $1.height) })
+            .first {
+            if let url = URL(string: best.url) { return url }
+        }
+
+        // Fall back to playUrl, then downloadUrl
+        if let play = playUrl, let url = URL(string: play) { return url }
+        if let download = downloadUrl, let url = URL(string: download) { return url }
+
+        return nil
     }
 
     /// The duration formatted as `"M:SS"`.
@@ -132,4 +187,5 @@ public struct VideoMetadata: Codable, Equatable, Sendable {
         formatter.numberStyle = .decimal
         return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
+    
 }

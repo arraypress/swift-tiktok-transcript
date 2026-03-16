@@ -2,7 +2,7 @@
 //  CaptionTrack.swift
 //  TikTokTranscript
 //
-//  Created by David Sherlock on 2025.
+//  Created by David Sherlock on 2026.
 //
 
 import Foundation
